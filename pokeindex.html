@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>¿Cuál es tu Pokémon inicial favorito?</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #f2f4f8;
+      color: #222;
+      display: flex;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+    .card {
+      background: #fff;
+      max-width: 560px;
+      width: 100%;
+      border-radius: 16px;
+      padding: 28px 24px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    }
+    h1 { font-size: 1.5rem; margin: 0 0 6px; text-align: center; }
+    .sub { text-align: center; color: #666; margin: 0 0 22px; }
+    .progress { font-size: 0.9rem; color: #888; margin-bottom: 8px; }
+    .question { font-size: 1.15rem; font-weight: 600; margin: 0 0 16px; }
+    .options { display: flex; flex-direction: column; gap: 10px; }
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 2px solid #e2e5ea;
+      border-radius: 12px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 1rem;
+      text-align: left;
+      transition: border-color .15s, background .15s;
+    }
+    .option:hover { border-color: #999; background: #fafafa; }
+    .option img { width: 56px; height: 56px; object-fit: contain; }
+    .letter { font-weight: 700; min-width: 22px; }
+    .result { text-align: center; }
+    .result img { width: 220px; height: 220px; object-fit: contain; }
+    .result h2 { margin: 8px 0 4px; font-size: 1.6rem; }
+    .score { color: #666; margin: 0 0 20px; }
+    .btn {
+      padding: 12px 22px;
+      border: none;
+      border-radius: 10px;
+      background: #3a6df0;
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .btn:hover { background: #2c58c9; }
+    .hidden { display: none; }
+    .squirtle { border-color: #4aa3df; }
+    .bulbasaur { border-color: #4caf50; }
+    .charmander { border-color: #f0712c; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>¿Cuál es tu Pokémon inicial favorito?</h1>
+    <p class="sub">Responde 3 preguntas y descúbrelo</p>
+
+    <div id="quiz">
+      <div class="progress" id="progress"></div>
+      <p class="question" id="question"></p>
+      <div class="options" id="options"></div>
+    </div>
+
+    <div id="result" class="result hidden">
+      <img id="resultImg" src="" alt="">
+      <h2 id="resultName"></h2>
+      <p class="score" id="resultScore"></p>
+      <p id="resultText"></p>
+      <button class="btn" onclick="restart()">Volver a jugar</button>
+    </div>
+  </div>
+
+  <script>
+    var IMG = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/";
+
+    var pokemon = {
+      A: { name: "Squirtle",   img: IMG + "7.png", css: "squirtle",
+           text: "Eres tranquilo, adaptable y sabes fluir con lo que venga." },
+      B: { name: "Bulbasaur",  img: IMG + "1.png", css: "bulbasaur",
+           text: "Eres paciente, leal y te gusta crecer a tu propio ritmo." },
+      C: { name: "Charmander", img: IMG + "4.png", css: "charmander",
+           text: "Eres apasionado, valiente y no le temes a los desafíos." }
+    };
+
+    var questions = [
+      {
+        q: "¿Qué lugar prefieres para pasar un día libre?",
+        a: { A: "La playa o un lago", B: "Un bosque o un parque", C: "Un volcán o un desierto" }
+      },
+      {
+        q: "¿Cómo te describirían tus amigos?",
+        a: { A: "Relajado y divertido", B: "Calmado y confiable", C: "Intenso y decidido" }
+      },
+      {
+        q: "¿Qué estación del año te gusta más?",
+        a: { A: "Verano", B: "Primavera", C: "Otoño, junto a la chimenea" }
+      }
+    ];
+
+    var current = 0;
+    var score = { A: 0, B: 0, C: 0 };
+    var lastAnswer = null;
+
+    function showQuestion() {
+      var item = questions[current];
+      document.getElementById("progress").textContent =
+        "Pregunta " + (current + 1) + " de " + questions.length;
+      document.getElementById("question").textContent = item.q;
+
+      var box = document.getElementById("options");
+      box.innerHTML = "";
+      ["A", "B", "C"].forEach(function (key) {
+        var btn = document.createElement("button");
+        btn.className = "option " + pokemon[key].css;
+        btn.innerHTML =
+          '<span class="letter">' + key + ')</span>' +
+          '<img src="' + pokemon[key].img + '" alt="' + pokemon[key].name + '">' +
+          '<span>' + item.a[key] + '</span>';
+        btn.onclick = function () { answer(key); };
+        box.appendChild(btn);
+      });
+    }
+
+    function answer(key) {
+      score[key]++;
+      lastAnswer = key;
+      current++;
+      if (current < questions.length) {
+        showQuestion();
+      } else {
+        showResult();
+      }
+    }
+
+    function showResult() {
+      // Gana el de mayor puntaje; en empate (1-1-1) decide la última respuesta.
+      var max = Math.max(score.A, score.B, score.C);
+      var winner = (score[lastAnswer] === max) ? lastAnswer :
+                   ["A", "B", "C"].filter(function (k) { return score[k] === max; })[0];
+      var p = pokemon[winner];
+
+      document.getElementById("quiz").classList.add("hidden");
+      document.getElementById("result").classList.remove("hidden");
+      document.getElementById("resultImg").src = p.img;
+      document.getElementById("resultImg").alt = p.name;
+      document.getElementById("resultName").textContent = "¡Tu favorito es " + p.name + "!";
+      document.getElementById("resultScore").textContent =
+        "Squirtle: " + score.A + " · Bulbasaur: " + score.B + " · Charmander: " + score.C;
+      document.getElementById("resultText").textContent = p.text;
+    }
+
+    function restart() {
+      current = 0;
+      score = { A: 0, B: 0, C: 0 };
+      lastAnswer = null;
+      document.getElementById("result").classList.add("hidden");
+      document.getElementById("quiz").classList.remove("hidden");
+      showQuestion();
+    }
+
+    showQuestion();
+  </script>
+</body>
+</html>
